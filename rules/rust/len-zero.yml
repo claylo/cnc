@@ -1,0 +1,11 @@
+id: len-zero
+language: rust
+severity: warning
+message: Use .is_empty() instead of .len() == 0
+note: "clippy::len_zero"
+rule:
+  any:
+    - pattern: $X.len() == 0
+    - pattern: $X.len() < 1
+    - pattern: 0 == $X.len()
+fix: $X.is_empty()

@@ -1,0 +1,11 @@
+id: manual-is-nan
+language: rust
+severity: warning
+message: Use .is_nan() instead — NaN never equals itself
+note: "clippy::manual_is_nan"
+rule:
+  any:
+    - pattern: $X != $X
+    - pattern: $X == f64::NAN
+    - pattern: $X == f32::NAN
+fix: $X.is_nan()

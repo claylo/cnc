@@ -1,0 +1,8 @@
+id: iter-nth-zero
+language: rust
+severity: warning
+message: Use .next() instead of .nth(0)
+note: "clippy::iter_nth_zero"
+rule:
+  pattern: $X.nth(0)
+fix: $X.next()

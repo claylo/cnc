@@ -1,0 +1,12 @@
+id: bool-comparison
+language: rust
+severity: warning
+message: Redundant boolean comparison
+note: "clippy::bool_comparison"
+rule:
+  any:
+    - pattern: $X == true
+    - pattern: true == $X
+    - pattern: $X != false
+    - pattern: false != $X
+fix: $X

@@ -1,0 +1,10 @@
+id: string-lit-as-bytes
+language: rust
+severity: warning
+message: "Use b\"...\" byte string literal instead of .as_bytes()"
+note: "clippy::string_lit_as_bytes"
+rule:
+  pattern: $S.as_bytes()
+constraints:
+  S:
+    regex: ^"

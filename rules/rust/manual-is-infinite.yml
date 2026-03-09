@@ -1,0 +1,10 @@
+id: manual-is-infinite
+language: rust
+severity: warning
+message: Use .is_infinite() instead of comparing to f64::INFINITY
+note: "clippy::manual_is_infinite"
+rule:
+  any:
+    - pattern: $X == f64::INFINITY
+    - pattern: $X == f32::INFINITY
+fix: $X.is_infinite()

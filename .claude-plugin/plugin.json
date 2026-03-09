@@ -1,0 +1,14 @@
+{
+  "name": "cnc",
+  "version": "1.0.0",
+  "description": "Clay & Claude guardrails — hooks for precision, redirection, and workflow discipline",
+  "author": {
+    "name": "Clay Loveless",
+    "email": "clay@loveless.net",
+    "url": "https://github.com/claylo"
+  },
+  "homepage": "https://github.com/claylo/cnc",
+  "repository": "https://github.com/claylo/cnc",
+  "license": "MIT",
+  "keywords": ["hooks", "guardrails", "workflow", "rust", "formatting", "handoffs"]
+}

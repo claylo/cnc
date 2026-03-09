@@ -1,0 +1,8 @@
+id: double-parens
+language: rust
+severity: warning
+message: Redundant double parentheses
+note: "clippy::double_parens"
+rule:
+  pattern: (($X))
+fix: ($X)
