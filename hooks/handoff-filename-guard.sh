@@ -18,14 +18,15 @@ dirpath=$(dirname "$file_path")
 # Strip leading digits and hyphens to get the description portion
 description="${basename#"${basename%%[!0-9-]*}"}"
 
-# Current timestamp prefix
+# Current timestamp — allow off-by-one minute for writes that land on the cusp
 now=$(date +%Y-%m-%d-%H%M)
+prev=$(date -v-1M +%Y-%m-%d-%H%M 2>/dev/null || date -d '1 minute ago' +%Y-%m-%d-%H%M 2>/dev/null || echo "")
 
 correct="${now}-${description}"
 correct_path="${dirpath}/${correct}"
 
-# If the filename already matches, allow
-if [[ "$basename" == "$correct" ]]; then
+# If the filename matches current or previous minute, allow
+if [[ "$basename" == "${now}-${description}" ]] || [[ -n "$prev" && "$basename" == "${prev}-${description}" ]]; then
   cat <<EOF
 {"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"allow","permissionDecisionReason":"handoff filename OK"}}
 EOF
@@ -34,5 +35,5 @@ fi
 
 # Block and tell the agent the correct filename
 cat <<EOF
-{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"block","permissionDecisionReason":"Wrong handoff filename. Use: ${correct_path}"}}
+{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":"Wrong handoff filename. Use: ${correct_path}"}}
 EOF

@@ -25,7 +25,7 @@ if [[ "$file_path" =~ /docs/(adrs|decisions|plans|reviews|specs|diagrams)/(.*) ]
   correct="${parent}/record/${subdir}/${rest}"
 
   cat <<EOF
-{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"block","permissionDecisionReason":"Wrong location. docs/ is for users. Use: ${correct}"}}
+{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":"Wrong location. docs/ is for users. Use: ${correct}"}}
 EOF
   exit 0
 fi
