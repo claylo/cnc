@@ -7,19 +7,21 @@ These are the hooks I use to keep Claude Code sessions from going off the rails.
 ## Hooks
 
 ### Handoff Filename Guard
-**Event:** `PreToolUse` on `Write`
+**Event:** `PreToolUse` on `Write|Edit`
 
-Sub-agents love to hand-wave timestamps on handoff documents. They'll round to `:00`, use six-digit timestamps, or just make something up. This hook intercepts writes to `.handoffs/` and enforces `YYYY-MM-DD-HHMM-description.md` naming with the **actual current time** — not whatever the agent hallucinated.
+Sub-agents love to hand-wave timestamps on handoff documents. They'll round to `:00`, use six-digit timestamps, or just make something up. This hook intercepts writes and edits to `.handoffs/` and enforces `YYYY-MM-DD-HHMM-description.md` naming with the **actual current time** — not whatever the agent hallucinated.
 
-If the timestamp is wrong, the write is blocked and the agent gets the correct filename back. If it's right, it passes through.
+If the timestamp is wrong, the operation is blocked and the agent gets the correct filename back. If it's right, it passes through.
+
+For Edit operations, there's a **30-minute mtime window**: editing a handoff older than 30 minutes is always allowed (that's legitimate maintenance on historical documents). Only fresh handoffs get the naming enforcement — catching agents that create a file and immediately try to edit it under the wrong name.
 
 ### Handoff File Auto-Allow
-**Event:** `PreToolUse` on `Read|Write`
+**Event:** `PreToolUse` on `Read|Write|Edit`
 
-Auto-allows reads and writes to `.handoffs/` so the agent doesn't need to ask permission for every handoff file operation.
+Auto-allows reads, writes, and edits to `.handoffs/` so the agent doesn't need to ask permission for every handoff file operation.
 
 ### For the Record
-**Event:** `PreToolUse` on `Write`
+**Event:** `PreToolUse` on `Read|Write|Edit`
 
 Plugins like superpowers dump documents into `docs/` subdirectories. I don't want that — `docs/` is for users. Internal project records go under `record/`:
 
@@ -31,10 +33,17 @@ record/      # internal project record
 ├── plans/
 ├── reviews/
 ├── specs/
-└── diagrams/
+├── diagrams/
+└── superpowers/
 ```
 
-This hook intercepts writes to `docs/{adrs,decisions,plans,reviews,specs,diagrams}/` and blocks them with the corrected `record/` path. Writes to other `docs/` paths pass through untouched.
+Behavior depends on the operation and whether the file exists:
+
+- **Write** — always blocked with the corrected `record/` path. New files go in the right place.
+- **Read/Edit on a missing file** — blocked with the corrected `record/` path. The file is probably already there.
+- **Read/Edit on an existing file** — allowed, but the agent is told this is a legacy location and asked to suggest moving the files to `record/`. This handles the case where cnc is installed after superpowers has already created files in `docs/`.
+
+Operations on other `docs/` paths (e.g. `docs/api-reference.md`) pass through untouched.
 
 ### Session Start Reminders
 **Event:** `SessionStart`
@@ -47,9 +56,9 @@ Conditionally reminds the agent about available context sources — `.handoffs/`
 Runs `rustfmt` on `.rs` files after any write or edit. Fails silently if rustfmt isn't installed — so this won't break anything in non-Rust projects.
 
 ### Clippy Harvest
-**Event:** `PreToolUse` on `Bash`
+**Event:** `PostToolUse` on `Bash`
 
-Watches for `cargo clippy` invocations. When one fires, it silently runs a parallel clippy with `--message-format=json` in the background and appends structured lint data to `~/.local/share/cnc/clippy-harvest.jsonl`. Zero overhead on the actual clippy run — just observes.
+Watches for `cargo` commands and parses clippy lint warnings from their actual output — no parallel compile, no extra CPU. Appends structured lint data to `~/.local/share/cnc/clippy-harvest.jsonl`. Matches any `cargo` command (not just `cargo clippy`), so it captures lints from whatever flags were actually used (`--all-targets`, `--all-features`, etc.).
 
 The companion script `hooks/clippy-analyze.sh` reads the harvest data and identifies which lints are purely syntactic (good ast-grep candidates) vs. which need type info (clippy-only).
 
@@ -70,7 +79,7 @@ When a session ends, reminds the agent to write honestly about how the session w
 
 ## AST-grep Rules
 
-9 syntactic Rust lint rules under `rules/rust/`, configured via `sgconfig.yml`. These catch patterns that don't need type information — purely structural matches that run in ~10ms/file:
+10 syntactic Rust lint rules under `rules/rust/`, configured via `sgconfig.yml`. These catch patterns that don't need type information — purely structural matches that run in ~10ms/file:
 
 | Rule | Pattern |
 |------|---------|
@@ -83,6 +92,9 @@ When a session ends, reminds the agent to write honestly about how the session w
 | `double-parens` | `((expr))` → `(expr)` |
 | `manual-is-nan` | `x != x` → `x.is_nan()` |
 | `manual-is-infinite` | `x == f64::INFINITY` → `x.is_infinite()` |
+| `use-types-before-values` | `use foo::{bar, Baz}` → `use foo::{Baz, bar}` |
+
+The `use-types-before-values` rule reorders grouped imports so types (PascalCase) precede values (snake_case), preserving relative order within each group. It safely skips imports containing `self`, `as` renames, or nested paths — only fires on simple identifier lists where both groups are present and out of order. This catches something rustfmt skips.
 
 These run via the `rustfmt-on-save` hook cycle — fast enough to check on every save. Full clippy stays in CI.
 
