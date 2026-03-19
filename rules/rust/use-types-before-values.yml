@@ -1,0 +1,50 @@
+id: use-types-before-values
+language: rust
+severity: hint
+message: "Reorder grouped imports: types (PascalCase) before values (snake_case)"
+
+rule:
+  all:
+    - pattern: use $PATH::{$$$ITEMS};
+    - has:
+        stopBy: end
+        kind: use_list
+        regex: '\b[a-z]\w*\b.*\b[A-Z]\w*\b'
+    - not:
+        has:
+          stopBy: end
+          kind: use_list
+          has:
+            any:
+              - kind: self
+              - kind: use_as_clause
+              - kind: scoped_use_list
+
+rewriters:
+  - id: upper
+    rule:
+      pattern: $ID
+      kind: identifier
+      regex: '^[A-Z]'
+    fix: $ID
+
+  - id: lower
+    rule:
+      pattern: $ID
+      kind: identifier
+      regex: '^[a-z]'
+    fix: $ID
+
+transform:
+  UPPERS:
+    rewrite:
+      source: $$$ITEMS
+      rewriters: [upper]
+      joinBy: ', '
+  LOWERS:
+    rewrite:
+      source: $$$ITEMS
+      rewriters: [lower]
+      joinBy: ', '
+
+fix: use $PATH::{$UPPERS, $LOWERS};
