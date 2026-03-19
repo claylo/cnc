@@ -7,10 +7,24 @@ cnc_enabled "handoff-filename-guard" || exit 0
 # for files written to .handoffs/
 
 input=$(cat)
+tool_name=$(echo "$input" | jq -r '.tool_name // empty')
 file_path=$(echo "$input" | jq -r '.tool_input.file_path // empty')
 
 # Only act on .handoffs/ paths
 [[ "$file_path" == */.handoffs/* ]] || exit 0
+
+# Edit on an existing file older than 30 min: allow (historical maintenance)
+if [[ "$tool_name" == "Edit" && -f "$file_path" ]]; then
+  now_epoch=$(date +%s)
+  file_epoch=$(stat -f %m "$file_path" 2>/dev/null || stat -c %Y "$file_path" 2>/dev/null || echo 0)
+  age=$(( now_epoch - file_epoch ))
+  if (( age > 1800 )); then
+    cat <<EOF
+{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"allow","permissionDecisionReason":"historical handoff edit allowed"}}
+EOF
+    exit 0
+  fi
+fi
 
 basename=$(basename "$file_path")
 dirpath=$(dirname "$file_path")

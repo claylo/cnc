@@ -53,7 +53,7 @@ echo ""
 
 echo "--- AST-GREP CANDIDATES (syntactic, no type info needed) ---"
 for lint in "${syntactic_lints[@]}"; do
-  count=$(jq -r ".lint" "$log_file" | grep -c "^${lint}$" 2>/dev/null || echo 0)
+  count=$(jq -r ".lint" "$log_file" | grep -c "^${lint}$" 2>/dev/null) || count=0
   if [[ "$count" -gt 0 ]]; then
     printf "  %4s  %s\n" "$count" "$lint"
   fi

@@ -14,7 +14,7 @@
     ],
     "PreToolUse": [
       {
-        "matcher": "Read|Write",
+        "matcher": "Read|Write|Edit",
         "hooks": [
           {
             "type": "command",
@@ -23,7 +23,7 @@
         ]
       },
       {
-        "matcher": "Write",
+        "matcher": "Write|Edit",
         "hooks": [
           {
             "type": "command",
@@ -32,11 +32,22 @@
         ]
       },
       {
-        "matcher": "Write",
+        "matcher": "Read|Write|Edit",
         "hooks": [
           {
             "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/for-the-record.sh"
+          }
+        ]
+      },
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/rustfmt-on-save.sh"
           }
         ]
       },
@@ -46,17 +57,6 @@
           {
             "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/clippy-harvest.sh"
-          }
-        ]
-      }
-    ],
-    "PostToolUse": [
-      {
-        "matcher": "Write|Edit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/rustfmt-on-save.sh"
           }
         ]
       }
