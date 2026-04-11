@@ -110,12 +110,13 @@ Toggle hooks on/off. No argument lists current state. All hooks default to on �
 
 Project-level settings override global defaults. Global defaults apply across all projects.
 
-### `/cnc-logs [oops|wiretap|harvest] [--tail]`
+### `/cnc-logs [oops|wiretap|rustfmt|harvest] [--tail]`
 Quick dashboard for cnc's log files (`~/.local/share/cnc/*.jsonl`).
 
-- `/cnc-logs` — summary: entry counts, sizes, top failures, event breakdown, lint totals
+- `/cnc-logs` — summary: entry counts, sizes, top failures, event breakdown, rustfmt and lint totals
 - `/cnc-logs oops` — tool failure drill-down: by tool, common errors, last 5
 - `/cnc-logs wiretap` — hook event breakdown: by event type, last 5
+- `/cnc-logs rustfmt` — rustfmt-on-save runs, reformat count, ast-grep rules that fired
 - `/cnc-logs harvest` — clippy lint analysis (runs `clippy-analyze.sh`)
 - `/cnc-logs oops --tail` — last 10 raw entries as JSON
 
