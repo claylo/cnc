@@ -53,4 +53,17 @@ if [[ -d "$log_dir" ]]; then
   done
 fi
 
+# Hook schema drift check — flag if any hook reads fields never observed in
+# wiretap for its matching event. Catches silent breakage from Claude Code
+# hook payload schema changes (e.g., the .tool_output → .tool_response shift).
+cnc_logs="$(dirname "$0")/cnc-logs.sh"
+if [[ -x "$cnc_logs" ]] && [[ -f "$log_dir/wiretap.jsonl" ]]; then
+  drift_report=$("$cnc_logs" drift 2>/dev/null || true)
+  drift_summary=$(echo "$drift_report" | grep -E "^Summary:" || true)
+  if [[ -n "$drift_summary" ]]; then
+    drift_n=$(echo "$drift_summary" | awk '{print $2}')
+    hints="${hints}- ${drift_n} hook schema drift(s) detected — run /cnc-logs drift for details\n"
+  fi
+fi
+
 printf "%b" "$hints"

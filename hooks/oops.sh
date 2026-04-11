@@ -10,4 +10,14 @@ log_file="${log_dir}/oops.jsonl"
 mkdir -p "$log_dir"
 
 input=$(cat)
-echo "$input" | jq -c '. + {ts: now | todate}' >> "$log_file" 2>/dev/null || echo "$input" >> "$log_file"
+
+# Serialize appends across concurrent Claude sessions (see wiretap.sh for
+# the PIPE_BUF race this prevents).
+if command -v flock >/dev/null 2>&1; then
+  (
+    flock -x -w 5 9 || exit 0
+    echo "$input" | jq -c '. + {ts: now | todate}' >&9 2>/dev/null || echo "$input" >&9
+  ) 9>>"$log_file"
+else
+  echo "$input" | jq -c '. + {ts: now | todate}' >> "$log_file" 2>/dev/null || echo "$input" >> "$log_file"
+fi

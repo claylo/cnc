@@ -12,11 +12,12 @@ command=$(echo "$input" | jq -r '.tool_input.command // empty')
 # Only act on cargo commands
 [[ "$command" == *"cargo "* ]] || exit 0
 
-# Extract output — handle both string and structured tool_output
+# Extract output — handle both string and structured tool_response
+# (Claude Code's PostToolUse payload uses .tool_response, not .tool_output)
 output=$(echo "$input" | jq -r '
-  if (.tool_output | type) == "string" then .tool_output
-  elif (.tool_output | type) == "object" then
-    [.tool_output.stdout // "", .tool_output.stderr // ""] | join("\n")
+  if (.tool_response | type) == "string" then .tool_response
+  elif (.tool_response | type) == "object" then
+    [.tool_response.stdout // "", .tool_response.stderr // ""] | join("\n")
   else ""
   end
 ')
@@ -30,7 +31,7 @@ mkdir -p "$log_dir"
 
 # Parse clippy warning blocks from human-readable output.
 # Tracks state across lines: warning/error → file location → lint name.
-echo "$output" | awk -v ts="$(date -u +%Y-%m-%dT%H:%M:%SZ)" '
+lints=$(echo "$output" | awk -v ts="$(date -u +%Y-%m-%dT%H:%M:%SZ)" '
 /^(warning|error)(\[[A-Z][0-9]+\])?: / {
   if (/generated [0-9]+ warning/) next
   level = "warning"
@@ -57,4 +58,17 @@ echo "$output" | awk -v ts="$(date -u +%Y-%m-%dT%H:%M:%SZ)" '
       lint, level, (file != "" ? file : "unknown"), line, message, ts
   }
   lint = ""; file = ""; message = ""; line = 0; level = "warning"
-}' >> "$log_file"
+}')
+
+[[ -n "$lints" ]] || exit 0
+
+# Serialize appends across concurrent Claude sessions (see wiretap.sh for
+# the PIPE_BUF race this prevents).
+if command -v flock >/dev/null 2>&1; then
+  (
+    flock -x -w 5 9 || exit 0
+    printf '%s\n' "$lints" >&9
+  ) 9>>"$log_file"
+else
+  printf '%s\n' "$lints" >> "$log_file"
+fi
