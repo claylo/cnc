@@ -1,21 +1,18 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# UserPromptSubmit hook: display cnc log analysis
+# cnc log analysis script, invoked by skills/cnc-logs/SKILL.md via the
+# skill's inline `!` block. Accepts positional args directly — no stdin
+# parsing, no UserPromptSubmit wiring.
 #
-# /cnc-logs                — summary dashboard
-# /cnc-logs oops           — tool failure breakdown
-# /cnc-logs wiretap        — hook event breakdown
-# /cnc-logs harvest        — clippy lint analysis
-# /cnc-logs <name> --tail  — last 10 raw entries
+# ./cnc-logs.sh                — summary dashboard
+# ./cnc-logs.sh oops           — tool failure breakdown
+# ./cnc-logs.sh wiretap        — hook event breakdown
+# ./cnc-logs.sh rustfmt        — rustfmt-on-save runs and ast-grep hits
+# ./cnc-logs.sh harvest        — clippy lint analysis
+# ./cnc-logs.sh <name> --tail  — last 10 raw entries
 
-input=$(cat)
-prompt=$(echo "$input" | jq -r '.user_prompt // empty')
-
-# Only act on /cnc-logs commands (plain or plugin-namespaced /cnc:cnc-logs)
-[[ "$prompt" == */cnc-logs* || "$prompt" == */cnc:cnc-logs* ]] || exit 0
-
-args=$(echo "$prompt" | sed -E -n 's|.*/(cnc:)?cnc-logs[[:space:]]*||p' | xargs)
+args="$*"
 
 log_dir="${HOME}/.local/share/cnc"
 
