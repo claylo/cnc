@@ -1,6 +1,6 @@
 {
   "name": "cnc",
-  "version": "1.4.1",
+  "version": "1.5.0",
   "description": "Clay & Claude guardrails — hooks for precision, redirection, and workflow discipline",
   "author": {
     "name": "Clay Loveless",

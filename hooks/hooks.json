@@ -136,15 +136,6 @@
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/toggle-hook.sh"
           }
         ]
-      },
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/cnc-logs.sh"
-          }
-        ]
       }
     ]
   }
