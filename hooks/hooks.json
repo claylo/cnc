@@ -39,7 +39,7 @@
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/for-the-record.sh"
           }
         ]
-      },
+      }
     ],
     "PostToolUse": [
       {
@@ -128,12 +128,21 @@
       }
     ],
     "UserPromptSubmit": [
-{
-        "matcher": "*/cncflip*",
+      {
+        "matcher": "",
         "hooks": [
           {
             "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/toggle-hook.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/cnc-logs.sh"
           }
         ]
       }

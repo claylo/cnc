@@ -53,7 +53,4 @@ if [[ -d "$log_dir" ]]; then
   done
 fi
 
-# Always include the test warning
-hints="${hints}\nDo NOT run test suites without asking first. The machine is slow and test runs can take 10+ minutes. Ask before running tests."
-
 printf "%b" "$hints"

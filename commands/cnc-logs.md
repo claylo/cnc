@@ -1,0 +1,1 @@
+The log analysis is above. Summarize the key findings — highlight anything that looks like a pattern (repeated failures, unusual events, actionable lint data). Don't reformat the raw output, just call out what's interesting.

@@ -3,3 +3,5 @@ PRIVATE_MEMORY.md
 .private-journal
 .handoffs
 ref/
+.claude/
+dist/

@@ -12,6 +12,9 @@ source "$(dirname "$0")/cnc-config.sh"
 input=$(cat)
 prompt=$(echo "$input" | jq -r '.user_prompt // empty')
 
+# Only act on /cncflip commands
+[[ "$prompt" == */cncflip* ]] || exit 0
+
 # Extract everything after "cncflip"
 args=$(echo "$prompt" | sed -n 's|.*/cncflip[[:space:]]*||p' | xargs)
 

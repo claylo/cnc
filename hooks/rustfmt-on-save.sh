@@ -12,7 +12,7 @@ file_path=$(echo "$input" | jq -r '.tool_input.file_path // empty')
 [[ -f "$file_path" ]] || exit 0
 
 if command -v rustfmt &>/dev/null; then
-  rustfmt "$file_path" 2>&1 || true
+  rustfmt --edition 2024 --style-edition 2024 "$file_path" 2>&1 || true
 fi
 
 # ast-grep lint pass (clippy-lite, no compilation)

@@ -1,0 +1,31 @@
+# Notify claylo-marketplace when a release is published.
+
+name: Notify Marketplace
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  notify:
+    name: Notify Marketplace
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Extract version
+        id: version
+        run: |
+          version=$(jq -r '.version' .claude-plugin/plugin.json)
+          echo "version=$version" >> $GITHUB_OUTPUT
+
+      - name: Notify marketplace
+        env:
+          GH_TOKEN: ${{ secrets.CROSS_REPO_PAT }}
+        run: |
+          gh api repos/claylo/claylo-marketplace/dispatches \
+            -f event_type=plugin-update \
+            -f 'client_payload[plugin]=cnc' \
+            -f 'client_payload[version]=${{ steps.version.outputs.version }}'
