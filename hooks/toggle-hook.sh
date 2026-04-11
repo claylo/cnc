@@ -30,24 +30,12 @@ hook_name="$args"
 
 config=".claude/settings.local.json"
 
-# Ensure project config exists
-if [[ ! -f "$config" ]]; then
-  mkdir -p .claude
-  echo '{}' > "$config"
-fi
-if ! jq -e '.cnc.hooks' "$config" &>/dev/null; then
-  tmp=$(mktemp)
-  jq '.cnc.hooks = {}' "$config" > "$tmp" && mv "$tmp" "$config"
-fi
+# Load both configs without mutating anything.
+# Missing files become empty objects; scaffolding is deferred to the
+# toggle branches so a plain list call never writes to disk.
+project_data='{}'
+[[ -f "$config" ]] && project_data=$(cat "$config")
 
-# Ensure global config exists when in global mode
-if [[ "$global_mode" == true ]]; then
-  mkdir -p "$(dirname "$CNC_GLOBAL_CONFIG")"
-  [[ -f "$CNC_GLOBAL_CONFIG" ]] || echo '{}' > "$CNC_GLOBAL_CONFIG"
-fi
-
-# Load both configs once
-project_data=$(cat "$config")
 global_data='{}'
 [[ -f "$CNC_GLOBAL_CONFIG" ]] && global_data=$(cat "$CNC_GLOBAL_CONFIG")
 
@@ -114,8 +102,11 @@ if [[ "$global_mode" == true ]]; then
   else
     new_val="false"; label="OFF"
   fi
+  # Scaffold only at write time — atomic tmp+mv
+  mkdir -p "$(dirname "$CNC_GLOBAL_CONFIG")"
   tmp=$(mktemp)
-  jq --arg hook "$hook_name" --argjson val "$new_val" '.[$hook] = $val' "$CNC_GLOBAL_CONFIG" > "$tmp" && mv "$tmp" "$CNC_GLOBAL_CONFIG"
+  jq -n --argjson global "$global_data" --arg hook "$hook_name" --argjson val "$new_val" \
+    '$global | .[$hook] = $val' > "$tmp" && mv "$tmp" "$CNC_GLOBAL_CONFIG"
   echo "Toggled $hook_name → $label (global)"
 else
   state=$(_resolve "$_jq_effective" "$hook_name")
@@ -124,7 +115,10 @@ else
   else
     new_val="false"; label="OFF"
   fi
+  # Scaffold only at write time — jq creates .cnc and .cnc.hooks
+  # automatically when the path doesn't exist.
+  mkdir -p .claude
   tmp=$(mktemp)
-  jq --arg hook "$hook_name" --argjson val "$new_val" '.cnc.hooks[$hook] = $val' "$config" > "$tmp" && mv "$tmp" "$config"
+  jq --arg hook "$hook_name" --argjson val "$new_val" '.cnc.hooks[$hook] = $val' <<<"$project_data" > "$tmp" && mv "$tmp" "$config"
   echo "Toggled $hook_name → $label"
 fi
