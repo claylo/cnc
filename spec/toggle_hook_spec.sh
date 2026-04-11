@@ -101,12 +101,39 @@ Describe 'toggle-hook.sh (cncflip)'
     End
   End
 
-  Describe 'creates config scaffolding if missing'
-    It 'works with no settings.local.json'
+  Describe 'listing leaves the filesystem alone'
+    It 'works without creating settings.local.json'
       rm -f "$TEST_TMPDIR/.claude/settings.local.json"
       Data '{"user_prompt":"/cncflip"}'
       When run script "$HOOK"
       The output should include 'handoff-filename-guard: on'
+      The path "$TEST_TMPDIR/.claude/settings.local.json" should not be exist
+    End
+
+    It 'does not add cnc.hooks to an unrelated existing file'
+      echo '{"other":"value"}' > "$TEST_TMPDIR/.claude/settings.local.json"
+      Data '{"user_prompt":"/cncflip"}'
+      When run script "$HOOK"
+      The output should include 'handoff-filename-guard: on'
+      The contents of file "$TEST_TMPDIR/.claude/settings.local.json" should not include 'cnc'
+    End
+
+    It 'does not create ~/.config/cnc/defaults.json on --global list'
+      rm -rf "$TEST_TMPDIR/.config"
+      Data '{"user_prompt":"/cncflip --global"}'
+      When run script "$HOOK"
+      The output should include 'global defaults'
+      The path "$TEST_TMPDIR/.config/cnc/defaults.json" should not be exist
+    End
+  End
+
+  Describe 'toggle writes do create scaffolding'
+    It 'creates settings.local.json when toggling a fresh project'
+      rm -f "$TEST_TMPDIR/.claude/settings.local.json"
+      Data '{"user_prompt":"/cncflip for-the-record"}'
+      When run script "$HOOK"
+      The output should include 'Toggled for-the-record'
+      The path "$TEST_TMPDIR/.claude/settings.local.json" should be exist
     End
   End
 
