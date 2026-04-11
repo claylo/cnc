@@ -19,11 +19,24 @@ Describe 'toggle-hook.sh (cncflip)'
       The output should include 'rustfmt-on-save: on'
       The output should include 'session-start: on'
     End
+
+    It 'accepts plugin-namespaced /cnc:cncflip form'
+      Data '{"user_prompt":"/cnc:cncflip"}'
+      When run script "$HOOK"
+      The output should include 'handoff-filename-guard: on'
+    End
   End
 
   Describe 'toggle off'
     It 'flips to OFF'
       Data '{"user_prompt":"/cncflip for-the-record"}'
+      When run script "$HOOK"
+      The output should include 'Toggled for-the-record'
+      The output should include 'OFF'
+    End
+
+    It 'flips via plugin-namespaced /cnc:cncflip form'
+      Data '{"user_prompt":"/cnc:cncflip for-the-record"}'
       When run script "$HOOK"
       The output should include 'Toggled for-the-record'
       The output should include 'OFF'
