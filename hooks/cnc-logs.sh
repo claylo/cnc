@@ -49,7 +49,9 @@ show_summary() {
 
   if [[ -f "$log_dir/wiretap.jsonl" ]]; then
     echo "Wiretap events:"
-    jq -r '.hook_event_name // "unknown"' "$log_dir/wiretap.jsonl" | sort | uniq -c | sort -rn | while read -r c t; do
+    # -R + fromjson? skips any interleaved/malformed lines from concurrent
+    # writers instead of halting mid-stream (see wiretap.sh for the race)
+    jq -R -r 'fromjson? | .hook_event_name // "unknown"' "$log_dir/wiretap.jsonl" | sort | uniq -c | sort -rn | while read -r c t; do
       printf "  %4s  %s\n" "$c" "$t"
     done
     echo ""
@@ -107,13 +109,15 @@ show_wiretap() {
   echo "=== wiretap: hook events ==="
   echo ""
   echo "By event:"
-  jq -r '.hook_event_name // "unknown"' "$f" | sort | uniq -c | sort -rn | while read -r c t; do
+  # -R + fromjson? skips any interleaved/malformed lines from concurrent
+  # writers instead of halting mid-stream (see wiretap.sh for the race)
+  jq -R -r 'fromjson? | .hook_event_name // "unknown"' "$f" | sort | uniq -c | sort -rn | while read -r c t; do
     printf "  %4s  %s\n" "$c" "$t"
   done
   echo ""
 
   echo "Last 5:"
-  tail -5 "$f" | jq -r '
+  tail -5 "$f" | jq -R -r 'fromjson? |
     [.ts[0:16] // "?", .hook_event_name // "?", .file_path // .load_reason // ""] | join("  ")
   ' 2>/dev/null
 }
@@ -182,6 +186,115 @@ show_tail() {
   tail -10 "$f" | jq . 2>/dev/null
 }
 
+# Is this ref a payload-shaped field name (vs. e.g. a shell variable or
+# a random dotted token)? Conservative whitelist of prefixes and known keys.
+_cnc_is_payload_ref() {
+  case "$1" in
+    tool_*|hook_*|agent_*|session_*|task_*|transcript_*|trigger_*|parent_*|notification_*) return 0 ;;
+    ts|cwd|error|message|source|file_path|prompt|model|reason|load_reason|memory_type|is_interrupt|permission_mode|stop_hook_active|last_assistant_message|cc_version|test_source) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+show_drift() {
+  local f="$log_dir/wiretap.jsonl"
+  [[ -f "$f" ]] || { echo "No wiretap data."; return; }
+
+  local hooks_dir hooks_json
+  hooks_dir="$(dirname "$0")"
+  hooks_json="$hooks_dir/hooks.json"
+  [[ -f "$hooks_json" ]] || { echo "No hooks.json at $hooks_json"; return; }
+
+  echo "=== cnc: hook schema drift ==="
+  echo ""
+
+  # Observation window breakdown by cc_version
+  local total
+  total=$(wc -l < "$f" | tr -d ' ')
+  echo "Observation window: $total wiretap records"
+  jq -R -r 'fromjson? | .cc_version // "legacy"' "$f" 2>/dev/null | sort | uniq -c | sort -rn | while read -r c v; do
+    printf "  %6s  %s\n" "$c" "$v"
+  done
+  echo ""
+
+  # Build a one-pass observation index: each line is "event<TAB>tool<TAB>key".
+  # A key is observed for an (event, tool) combo if a line matches.
+  local obs_index
+  obs_index=$(jq -R -r '
+    fromjson? |
+    .hook_event_name as $event |
+    (.tool_name // "_") as $tool |
+    keys[] | "\($event)\t\($tool)\t\(.)"
+  ' "$f" 2>/dev/null | sort -u)
+
+  # Build hook → (event, matcher) mapping from hooks.json
+  local hook_map
+  hook_map=$(jq -r '
+    .hooks | to_entries[] | .key as $event |
+    .value[] | (.matcher // "") as $matcher |
+    .hooks[] | .command |
+    capture("hooks/(?<name>[a-z-]+)\\.sh") | .name | "\(.)\t\($event)\t\($matcher)"
+  ' "$hooks_json" 2>/dev/null | sort -u)
+
+  echo "Hook field refs vs. wiretap observations:"
+  echo ""
+
+  local drift_count=0 checked_count=0
+  while IFS=$'\t' read -r hook event matcher; do
+    [[ -n "$hook" ]] || continue
+    local hook_file="$hooks_dir/$hook.sh"
+    [[ -f "$hook_file" ]] || continue
+
+    # Extract top-level payload-field refs from the hook source.
+    # Match any dotted identifier chain, reduce to the first segment,
+    # then filter through the payload-ref whitelist. Strip full-line
+    # comments first so stale references in # comments don't false-flag.
+    local payload_refs=""
+    local raw_refs
+    raw_refs=$(sed 's/^[[:space:]]*#.*//' "$hook_file" 2>/dev/null |
+               grep -oE '\.[a-z_][a-z_0-9]*(\.[a-z_][a-z_0-9]*)*' |
+               awk -F. 'NF >= 2 {print $2}' | sort -u)
+    while IFS= read -r ref; do
+      [[ -z "$ref" ]] && continue
+      if _cnc_is_payload_ref "$ref"; then
+        payload_refs="$payload_refs $ref"
+      fi
+    done <<< "$raw_refs"
+
+    [[ -z "$payload_refs" ]] && continue
+
+    # Header line for this hook/event/matcher combo
+    local label="$event"
+    [[ -n "$matcher" ]] && label="$event:$matcher"
+    printf "  %-30s %s\n" "$hook.sh" "$label"
+    checked_count=$((checked_count + 1))
+
+    # For each ref, check the observation index for a row matching
+    # ^event<TAB>(matcher)<TAB>ref$. Empty matcher → match any tool.
+    for ref in $payload_refs; do
+      local pattern
+      if [[ -n "$matcher" ]]; then
+        pattern="^${event}	(${matcher})	${ref}$"
+      else
+        pattern="^${event}	[^	]+	${ref}$"
+      fi
+      if echo "$obs_index" | grep -qE "$pattern"; then
+        printf "    .%-26s ✓\n" "$ref"
+      else
+        printf "    .%-26s ✗ DRIFT — never observed in this event\n" "$ref"
+        drift_count=$((drift_count + 1))
+      fi
+    done
+    echo ""
+  done <<< "$hook_map"
+
+  if [[ "$drift_count" -eq 0 ]]; then
+    echo "No drift detected across $checked_count hook/event combination(s)."
+  else
+    echo "Summary: $drift_count drifted field reference(s) across $checked_count hook/event combination(s)."
+  fi
+}
+
 # Parse args
 case "$args" in
   "")
@@ -199,12 +312,15 @@ case "$args" in
   harvest)
     show_harvest
     ;;
+  drift)
+    show_drift
+    ;;
   *--tail*)
     name=$(echo "$args" | sed 's/--tail//;s/^[[:space:]]*//;s/[[:space:]]*$//')
     [[ -n "$name" ]] || name="oops"
     show_tail "$name"
     ;;
   *)
-    echo "Usage: /cnc-logs [oops|wiretap|rustfmt|harvest] [--tail]"
+    echo "Usage: /cnc-logs [oops|wiretap|rustfmt|harvest|drift] [--tail]"
     ;;
 esac

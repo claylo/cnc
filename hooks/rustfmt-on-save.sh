@@ -46,7 +46,7 @@ log_dir="${HOME}/.local/share/cnc"
 log_file="${log_dir}/rustfmt.jsonl"
 mkdir -p "$log_dir"
 
-jq -c -n \
+line=$(jq -c -n \
   --arg file "$file_path" \
   --argjson rustfmt_ran "$rustfmt_ran" \
   --argjson changed "$changed" \
@@ -61,4 +61,17 @@ jq -c -n \
     sg_scanned: $sg_scanned,
     sg_hits: $sg_hits,
     sg_rules: $sg_rules
-  }' >> "$log_file" 2>/dev/null || true
+  }' 2>/dev/null || true)
+
+[[ -n "$line" ]] || exit 0
+
+# Serialize appends across concurrent Claude sessions (see wiretap.sh for
+# the PIPE_BUF race this prevents).
+if command -v flock >/dev/null 2>&1; then
+  (
+    flock -x -w 5 9 || exit 0
+    printf '%s\n' "$line" >&9
+  ) 9>>"$log_file"
+else
+  printf '%s\n' "$line" >> "$log_file"
+fi
