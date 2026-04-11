@@ -12,10 +12,10 @@ set -euo pipefail
 input=$(cat)
 prompt=$(echo "$input" | jq -r '.user_prompt // empty')
 
-# Only act on /cnc-logs commands
-[[ "$prompt" == */cnc-logs* ]] || exit 0
+# Only act on /cnc-logs commands (plain or plugin-namespaced /cnc:cnc-logs)
+[[ "$prompt" == */cnc-logs* || "$prompt" == */cnc:cnc-logs* ]] || exit 0
 
-args=$(echo "$prompt" | sed -n 's|.*/cnc-logs[[:space:]]*||p' | xargs)
+args=$(echo "$prompt" | sed -E -n 's|.*/(cnc:)?cnc-logs[[:space:]]*||p' | xargs)
 
 log_dir="${HOME}/.local/share/cnc"
 
