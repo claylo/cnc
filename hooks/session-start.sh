@@ -5,6 +5,19 @@ cnc_enabled "session-start" || exit 0
 
 # SessionStart hook: remind agent about context sources and test etiquette
 
+# Resolve Claude Code version once per session and cache it. Hooks can't see
+# CLAUDE_CODE_EXECPATH reliably (CLAUDE_CODE_SUBPROCESS_ENV_SCRUB strips it),
+# so resolve via the versioned install path symlinked from $(command -v claude)
+# and fall back to `claude --version` when the binary isn't a symlink.
+mkdir -p "${HOME}/.local/share/cnc"
+real=$(readlink "$(command -v claude)" 2>/dev/null || true)
+ver="${real##*/}"
+if [[ -z "$ver" || "$ver" == "claude" ]]; then
+  ver=$(claude --version 2>/dev/null || true)
+  ver="${ver%% *}"
+fi
+printf '%s\n' "${ver:-unknown}" > "${HOME}/.local/share/cnc/cc_version"
+
 hints=""
 
 if [[ -d .handoffs ]] && ls .handoffs/*.md &>/dev/null; then
@@ -18,13 +31,11 @@ for mem in .claude/MEMORY.md .claude/PRIVATE_MEMORY.md ~/.claude/MEMORY.md; do
   fi
 done
 
-if [[ -d ~/.private-journal ]] || [[ -d .private-journal ]]; then
-  hints="${hints}- .private-journal entries exist — search before complex tasks\n"
-fi
-
-if command -v episodic-memory &>/dev/null; then
-  hints="${hints}- episodic-memory is available — search past conversations when stuck or unsure\n"
-fi
+# private-journal and episodic-memory hints used to fire here on
+# directory/binary existence, but SessionStart runs in parallel with the
+# async mcp-probe hook so we can't check runtime MCP availability yet.
+# vent.sh handles the private-journal reminder at SessionEnd when the
+# probe has completed and the signal is real.
 
 # Check auto memory file sizes (200-line truncation limit)
 mem_limit=170

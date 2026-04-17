@@ -11,11 +11,19 @@ mkdir -p "$log_dir"
 
 input=$(cat)
 
-# Stamp every captured record with ts and cc_version. The version comes from
-# CLAUDE_CODE_EXECPATH, which Claude Code sets to a versioned install path
-# like /Users/x/.local/share/claude/versions/2.1.101 — zero-subprocess, and
-# gives us a reliable axis for schema drift detection later.
-jq_filter='. + {ts: now | todate, cc_version: ((env.CLAUDE_CODE_EXECPATH // "unknown/unknown") | split("/") | last)}'
+# Per-event filter: hooks.json wires wiretap to every Claude Code event,
+# but the user chooses which ones to log via config (cnc.wiretap.events.<Event>).
+# Default is "log everything" so new users see full coverage out of the box.
+event=$(jq -r '.hook_event_name // empty' <<<"$input" 2>/dev/null || true)
+if [[ -n "$event" ]]; then
+  cnc_wiretap_event_enabled "$event" || exit 0
+fi
+
+# Stamp every captured record with ts and cc_version. Version is resolved
+# once at SessionStart and cached to disk; CLAUDE_CODE_EXECPATH is stripped
+# from hook subprocesses by CLAUDE_CODE_SUBPROCESS_ENV_SCRUB.
+cc_ver=$(cat "${log_dir}/cc_version" 2>/dev/null || echo unknown)
+jq_filter='. + {ts: now | todate, cc_version: $cc_ver}'
 
 # Serialize appends across concurrent Claude sessions. POSIX O_APPEND is
 # atomic only for writes ≤ PIPE_BUF (4096 on macOS); larger payloads like
@@ -24,8 +32,8 @@ jq_filter='. + {ts: now | todate, cc_version: ((env.CLAUDE_CODE_EXECPATH // "unk
 if command -v flock >/dev/null 2>&1; then
   (
     flock -x -w 5 9 || exit 0
-    echo "$input" | jq -c "$jq_filter" >&9 2>/dev/null || echo "$input" >&9
+    echo "$input" | jq -c --arg cc_ver "$cc_ver" "$jq_filter" >&9 2>/dev/null || echo "$input" >&9
   ) 9>>"$log_file"
 else
-  echo "$input" | jq -c "$jq_filter" >> "$log_file" 2>/dev/null || echo "$input" >> "$log_file"
+  echo "$input" | jq -c --arg cc_ver "$cc_ver" "$jq_filter" >> "$log_file" 2>/dev/null || echo "$input" >> "$log_file"
 fi
