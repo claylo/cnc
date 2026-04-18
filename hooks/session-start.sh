@@ -9,14 +9,14 @@ cnc_enabled "session-start" || exit 0
 # CLAUDE_CODE_EXECPATH reliably (CLAUDE_CODE_SUBPROCESS_ENV_SCRUB strips it),
 # so resolve via the versioned install path symlinked from $(command -v claude)
 # and fall back to `claude --version` when the binary isn't a symlink.
-mkdir -p "${HOME}/.local/share/cnc"
+mkdir -p "$CNC_LOG_DIR"
 real=$(readlink "$(command -v claude)" 2>/dev/null || true)
 ver="${real##*/}"
 if [[ -z "$ver" || "$ver" == "claude" ]]; then
   ver=$(claude --version 2>/dev/null || true)
   ver="${ver%% *}"
 fi
-printf '%s\n' "${ver:-unknown}" > "${HOME}/.local/share/cnc/cc_version"
+printf '%s\n' "${ver:-unknown}" > "${CNC_LOG_DIR}/cc_version"
 
 hints=""
 
@@ -50,10 +50,9 @@ for mem_dir in ".claude/projects/"*"/memory" ; do
 done
 
 # Check cnc log file sizes
-log_dir="${HOME}/.local/share/cnc"
-if [[ -d "$log_dir" ]]; then
+if [[ -d "$CNC_LOG_DIR" ]]; then
   threshold=$((10 * 1024 * 1024))
-  for logfile in "$log_dir"/*.jsonl; do
+  for logfile in "$CNC_LOG_DIR"/*.jsonl; do
     [[ -f "$logfile" ]] || continue
     size=$(stat -f%z "$logfile" 2>/dev/null || stat -c%s "$logfile" 2>/dev/null) || continue
     if [[ "$size" -gt "$threshold" ]]; then
@@ -68,7 +67,7 @@ fi
 # wiretap for its matching event. Catches silent breakage from Claude Code
 # hook payload schema changes (e.g., the .tool_output → .tool_response shift).
 cnc_logs="$(dirname "$0")/cnc-logs.sh"
-if [[ -x "$cnc_logs" ]] && [[ -f "$log_dir/wiretap.jsonl" ]]; then
+if [[ -x "$cnc_logs" ]] && [[ -f "$CNC_LOG_DIR/wiretap.jsonl" ]]; then
   drift_report=$("$cnc_logs" drift 2>/dev/null || true)
   drift_summary=$(echo "$drift_report" | grep -E "^Summary:" || true)
   if [[ -n "$drift_summary" ]]; then

@@ -25,9 +25,8 @@ output=$(echo "$input" | jq -r '
 # Quick check — bail if no clippy lints in output
 [[ "$output" == *"clippy::"* ]] || exit 0
 
-log_dir="${HOME}/.local/share/cnc"
-log_file="${log_dir}/clippy-harvest.jsonl"
-mkdir -p "$log_dir"
+log_file="${CNC_LOG_DIR}/clippy-harvest.jsonl"
+mkdir -p "$CNC_LOG_DIR"
 
 # Parse clippy warning blocks from human-readable output.
 # Tracks state across lines: warning/error → file location → lint name.

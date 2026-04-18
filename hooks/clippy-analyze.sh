@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
+source "$(dirname "$0")/cnc-config.sh"
 
 # Analyze clippy harvest data to identify ast-grep candidates.
 # Lints that are purely syntactic (no type info needed) are flagged.
 
-log_file="${HOME}/.local/share/cnc/clippy-harvest.jsonl"
+log_file="${CNC_LOG_DIR}/clippy-harvest.jsonl"
 
 if [[ ! -f "$log_file" ]]; then
   echo "No harvest data yet. Run clippy-harvest.sh against some projects first." >&2

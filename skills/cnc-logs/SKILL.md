@@ -9,7 +9,7 @@ allowed-tools: Bash
 ## Log analysis
 
 ```!
-${CLAUDE_SKILL_DIR}/../../hooks/cnc-logs.sh $ARGUMENTS
+CLAUDE_PLUGIN_DATA="${CLAUDE_PLUGIN_DATA}" ${CLAUDE_SKILL_DIR}/../../hooks/cnc-logs.sh $ARGUMENTS
 ```
 
 Summarize the key findings above — highlight anything that looks like a pattern

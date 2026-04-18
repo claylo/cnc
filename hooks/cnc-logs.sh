@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
+source "$(dirname "$0")/cnc-config.sh"
 
 # cnc log analysis script, invoked by skills/cnc-logs/SKILL.md via the
 # skill's inline `!` block. Accepts positional args directly — no stdin
@@ -14,7 +15,7 @@ set -euo pipefail
 
 args="$*"
 
-log_dir="${HOME}/.local/share/cnc"
+log_dir="$CNC_LOG_DIR"
 
 # Helper: entry count and last timestamp for a log file
 log_stats() {

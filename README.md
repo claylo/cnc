@@ -48,9 +48,9 @@ Operations on other `docs/` paths (e.g. `docs/api-reference.md`) pass through un
 ### Session Start Reminders
 **Event:** `SessionStart`
 
-Conditionally reminds the agent about available context sources — `.handoffs/` and `MEMORY.md` files — so it checks before asking questions. Warns when auto memory files approach the 200-line truncation limit (fires at 170). Checks `~/.local/share/cnc/*.jsonl` log files and flags any over 10MB.
+Conditionally reminds the agent about available context sources — `.handoffs/` and `MEMORY.md` files — so it checks before asking questions. Warns when auto memory files approach the 200-line truncation limit (fires at 170). Checks `$CLAUDE_PLUGIN_DATA/*.jsonl` log files and flags any over 10MB.
 
-Also resolves the current Claude Code version and caches it to `~/.local/share/cnc/cc_version`. Wiretap stamps every captured record with that version so drift analysis has a reliable axis. `CLAUDE_CODE_EXECPATH` gets stripped from hook subprocesses by `CLAUDE_CODE_SUBPROCESS_ENV_SCRUB`, so this cache is how wiretap knows which version produced which record.
+Also resolves the current Claude Code version and caches it to `$CLAUDE_PLUGIN_DATA/cc_version`. Wiretap stamps every captured record with that version so drift analysis has a reliable axis. `CLAUDE_CODE_EXECPATH` gets stripped from hook subprocesses by `CLAUDE_CODE_SUBPROCESS_ENV_SCRUB`, so this cache is how wiretap knows which version produced which record.
 
 Finally, runs the wiretap drift detector (see `/cnc-logs drift`) to catch silent breakage from Claude Code hook payload schema changes — the kind of thing that caused `clippy-harvest.sh` to fail quietly for a month after `.tool_output` became `.tool_response`.
 
@@ -81,19 +81,19 @@ Runs `rustfmt` on `.rs` files after any write or edit. Fails silently if rustfmt
 ### Clippy Harvest
 **Event:** `PostToolUse` on `Bash`
 
-Watches for `cargo` commands and parses clippy lint warnings from their actual output — no parallel compile, no extra CPU. Appends structured lint data to `~/.local/share/cnc/clippy-harvest.jsonl`. Matches any `cargo` command (not just `cargo clippy`), so it captures lints from whatever flags were actually used (`--all-targets`, `--all-features`, etc.).
+Watches for `cargo` commands and parses clippy lint warnings from their actual output — no parallel compile, no extra CPU. Appends structured lint data to `$CLAUDE_PLUGIN_DATA/clippy-harvest.jsonl`. Matches any `cargo` command (not just `cargo clippy`), so it captures lints from whatever flags were actually used (`--all-targets`, `--all-features`, etc.).
 
 The companion script `hooks/clippy-analyze.sh` reads the harvest data and identifies which lints are purely syntactic (good ast-grep candidates) vs. which need type info (clippy-only).
 
 ### Oops
 **Event:** `PostToolUseFailure`
 
-Logs the full payload of every tool failure to `~/.local/share/cnc/oops.jsonl`. Useful for spotting patterns in what goes wrong across sessions — recurring permission denials, flaky commands, etc.
+Logs the full payload of every tool failure to `$CLAUDE_PLUGIN_DATA/oops.jsonl`. Useful for spotting patterns in what goes wrong across sessions — recurring permission denials, flaky commands, etc.
 
 ### Wiretap
 **Event:** all 27 Claude Code hook events
 
-Captures each event's full payload to `~/.local/share/cnc/wiretap.jsonl`, stamped with `ts` and `cc_version`. This is the observability surface for what Claude Code actually sends hooks — payload shapes, which fields are populated, undocumented events, schema changes across Claude Code versions.
+Captures each event's full payload to `$CLAUDE_PLUGIN_DATA/wiretap.jsonl`, stamped with `ts` and `cc_version`. This is the observability surface for what Claude Code actually sends hooks — payload shapes, which fields are populated, undocumented events, schema changes across Claude Code versions.
 
 **Which events log is config-controlled, not hooks.json-controlled.** `hooks.json` wires wiretap to every event; a per-event toggle decides what actually writes to the log. Default is all on. Turn off noisy events via `/cncflip wiretap:<Event>` or by editing config directly:
 
@@ -151,7 +151,7 @@ Toggle hooks on/off. No argument lists current state. All hooks default to on �
 Project settings override global defaults. Global defaults apply across all projects.
 
 ### `/cnc-logs [oops|wiretap|rustfmt|harvest|drift] [--tail]`
-Quick dashboard for cnc's log files (`~/.local/share/cnc/*.jsonl`).
+Quick dashboard for cnc's log files (`$CLAUDE_PLUGIN_DATA/*.jsonl` — typically `~/.claude/plugins/data/cnc-*/`).
 
 - `/cnc-logs` — summary: entry counts, sizes, top failures, event breakdown, rustfmt and lint totals
 - `/cnc-logs oops` — tool failure drill-down: by tool, common errors, last 5
