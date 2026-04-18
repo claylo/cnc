@@ -5,9 +5,8 @@ cnc_enabled "wiretap" || exit 0
 
 # Log undocumented/interesting hook events to see what's in the payload
 
-log_dir="${HOME}/.local/share/cnc"
-log_file="${log_dir}/wiretap.jsonl"
-mkdir -p "$log_dir"
+log_file="${CNC_LOG_DIR}/wiretap.jsonl"
+mkdir -p "$CNC_LOG_DIR"
 
 input=$(cat)
 
@@ -22,7 +21,7 @@ fi
 # Stamp every captured record with ts and cc_version. Version is resolved
 # once at SessionStart and cached to disk; CLAUDE_CODE_EXECPATH is stripped
 # from hook subprocesses by CLAUDE_CODE_SUBPROCESS_ENV_SCRUB.
-cc_ver=$(cat "${log_dir}/cc_version" 2>/dev/null || echo unknown)
+cc_ver=$(cat "${CNC_LOG_DIR}/cc_version" 2>/dev/null || echo unknown)
 jq_filter='. + {ts: now | todate, cc_version: $cc_ver}'
 
 # Serialize appends across concurrent Claude sessions. POSIX O_APPEND is

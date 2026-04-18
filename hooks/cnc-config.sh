@@ -6,7 +6,10 @@
 # One jq call resolves the cascade. Uses != null (not //) because jq's // treats false as falsy.
 
 CNC_GLOBAL_CONFIG="${HOME}/.config/cnc/defaults.json"
-CNC_LOG_DIR="${HOME}/.local/share/cnc"
+# CLAUDE_PLUGIN_DATA is set by Claude Code when invoking hooks. Falls back to
+# the pre-plugin-data path when sourced outside a hook (tests, manual runs,
+# the /cnc-logs skill block). Directory is auto-created on first reference.
+CNC_LOG_DIR="${CLAUDE_PLUGIN_DATA:-$HOME/.local/share/cnc}"
 
 # ERR trap: log hook errors to oops.jsonl so we're not blind to our own failures.
 # Every hook sources this file, so the trap covers all of them.

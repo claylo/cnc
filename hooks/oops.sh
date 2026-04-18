@@ -5,9 +5,8 @@ cnc_enabled "oops" || exit 0
 
 # PostToolUseFail hook: log the full payload for later analysis
 
-log_dir="${HOME}/.local/share/cnc"
-log_file="${log_dir}/oops.jsonl"
-mkdir -p "$log_dir"
+log_file="${CNC_LOG_DIR}/oops.jsonl"
+mkdir -p "$CNC_LOG_DIR"
 
 input=$(cat)
 

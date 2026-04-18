@@ -14,7 +14,7 @@ session_id=$(jq -r '.session_id // empty' <<<"$input" 2>/dev/null || true)
 
 if cnc_mcp_connected "private-journal" "$session_id"; then
   cat <<'EOF'
-Before you go: if anything happened this session that should change how future sessions work, use the private-journal tool to capture it in ~/.private-journal/. Keep it focused:
+Before you go: if anything happened this session that should change how future sessions work, use the private-journal tool to capture it. Keep it focused:
 
 - Corrections or pushback from the user — what, why, do differently
 - Approaches that clicked — what worked and why

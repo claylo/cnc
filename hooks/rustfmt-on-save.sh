@@ -42,9 +42,8 @@ if command -v sg &>/dev/null && [[ -f "$sg_config" ]]; then
 fi
 
 # Log the run — best-effort, never fail the hook
-log_dir="${HOME}/.local/share/cnc"
-log_file="${log_dir}/rustfmt.jsonl"
-mkdir -p "$log_dir"
+log_file="${CNC_LOG_DIR}/rustfmt.jsonl"
+mkdir -p "$CNC_LOG_DIR"
 
 line=$(jq -c -n \
   --arg file "$file_path" \
