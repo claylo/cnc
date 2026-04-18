@@ -21,14 +21,30 @@ file_path=$(echo "$input" | jq -r '.tool_input.file_path // empty')
 
 [[ -n "$file_path" ]] || exit 0
 
-# Match docs/<record-subdir>/... — redirect to record/<subdir>/...
-if [[ "$file_path" =~ /docs/(adrs|decisions|plans|reviews|specs|diagrams|superpowers)/(.*) ]]; then
+# User-configurable knobs (plugin.json → userConfig, exported as CLAUDE_PLUGIN_OPTION_*)
+mode="${CLAUDE_PLUGIN_OPTION_FOR_THE_RECORD_MODE:-block}"
+subdirs_csv="${CLAUDE_PLUGIN_OPTION_RECORD_SUBDIRS:-adrs,decisions,plans,reviews,specs,diagrams,superpowers}"
+# CSV → regex alternation. Whitespace around commas tolerated.
+subdirs_re=$(echo "$subdirs_csv" | tr ',' '\n' | awk 'NF {gsub(/^[[:space:]]+|[[:space:]]+$/, ""); print}' | paste -sd'|' -)
+[[ -n "$subdirs_re" ]] || exit 0
+
+# Match docs/<record-subdir>/... — redirect or warn per mode
+if [[ "$file_path" =~ /docs/(${subdirs_re})/(.*) ]]; then
   subdir="${BASH_REMATCH[1]}"
   rest="${BASH_REMATCH[2]}"
   parent="${file_path%%/docs/${subdir}/${rest}}"
   correct="${parent}/record/${subdir}/${rest}"
 
-  # Write: always redirect — new files go in record/
+  # Warn mode: always allow, attach a suggestion. Lets users who want docs/
+  # keep docs/ while still getting the nudge.
+  if [[ "$mode" == "warn" ]]; then
+    cat <<EOF
+{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"allow","permissionDecisionReason":"cnc convention: record-keeping files belong in record/, not docs/. Suggested path: ${correct}"}}
+EOF
+    exit 0
+  fi
+
+  # Block mode (default) — redirect on Write
   if [[ "$tool_name" == "Write" ]]; then
     cat <<EOF
 {"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":"Wrong location. docs/ is for users. Use: ${correct}"}}

@@ -32,19 +32,39 @@ dirpath=$(dirname "$file_path")
 # Strip leading digits and hyphens to get the description portion
 description="${basename#"${basename%%[!0-9-]*}"}"
 
-# Current timestamp — allow off-by-one minute for writes that land on the cusp
+# User-configurable drift tolerance (plugin.json → userConfig). Default 5 min.
+# This is the window that catches "agent swagged the timestamp and got it off
+# by hours" without being pedantic about a few minutes of clock skew.
+drift_minutes="${CLAUDE_PLUGIN_OPTION_HANDOFF_DRIFT_MINUTES:-5}"
+[[ "$drift_minutes" =~ ^[0-9]+$ ]] || drift_minutes=5
+
 now=$(date +%Y-%m-%d-%H%M)
-prev=$(date -v-1M +%Y-%m-%d-%H%M 2>/dev/null || date -d '1 minute ago' +%Y-%m-%d-%H%M 2>/dev/null || echo "")
+now_epoch=$(date +%s)
 
 correct="${now}-${description}"
 correct_path="${dirpath}/${correct}"
 
-# If the filename matches current or previous minute, allow
-if [[ "$basename" == "${now}-${description}" ]] || [[ -n "$prev" && "$basename" == "${prev}-${description}" ]]; then
-  cat <<EOF
+# Extract the YYYY-MM-DD-HHMM prefix from the basename (if present).
+stamp_prefix=$(echo "$basename" | grep -oE '^[0-9]{4}-[0-9]{2}-[0-9]{2}-[0-9]{4}' || true)
+
+if [[ -n "$stamp_prefix" ]]; then
+  # Parse to epoch. macOS uses -j -f; GNU uses -d with a reformatted string.
+  d="${stamp_prefix:0:10}"
+  hh="${stamp_prefix:11:2}"
+  mm="${stamp_prefix:13:2}"
+  file_epoch=$(date -j -f "%Y-%m-%d-%H%M" "$stamp_prefix" +%s 2>/dev/null \
+               || date -d "${d} ${hh}:${mm}" +%s 2>/dev/null \
+               || echo "")
+  if [[ -n "$file_epoch" ]]; then
+    diff=$(( now_epoch - file_epoch ))
+    abs=${diff#-}
+    if (( abs <= drift_minutes * 60 )); then
+      cat <<EOF
 {"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"allow","permissionDecisionReason":"handoff filename OK"}}
 EOF
-  exit 0
+      exit 0
+    fi
+  fi
 fi
 
 # Block and tell the agent the correct filename

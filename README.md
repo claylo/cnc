@@ -9,11 +9,11 @@ These are the hooks I use to keep Claude Code sessions from going off the rails.
 ### Handoff Filename Guard
 **Event:** `PreToolUse` on `Write|Edit`
 
-Sub-agents love to hand-wave timestamps on handoff documents. They'll round to `:00`, use six-digit timestamps, or just make something up. This hook intercepts writes and edits to `.handoffs/` and enforces `YYYY-MM-DD-HHMM-description.md` naming with the **actual current time** — not whatever the agent hallucinated.
+Sub-agents love to hand-wave timestamps on handoff documents. They'll round to `:00`, use six-digit timestamps, or just make something up (I've seen "off by 12 hours" in the wild). This hook intercepts writes and edits to `.handoffs/` and enforces `YYYY-MM-DD-HHMM-description.md` naming with the **actual current time** — not whatever the agent hallucinated.
 
-If the timestamp is wrong, the operation is blocked and the agent gets the correct filename back. If it's right, it passes through.
+The filename timestamp must fall within ±5 minutes of real-now (configurable via `handoff_drift_minutes`). Far enough to absorb clock skew and the "cusp of a minute change" case; tight enough to catch an agent that hallucinated the hour or day. If the drift is too large, the operation is blocked and the agent gets the correct filename back.
 
-For Edit operations, there's a **30-minute mtime window**: editing a handoff older than 30 minutes is always allowed (that's legitimate maintenance on historical documents). Only fresh handoffs get the naming enforcement — catching agents that create a file and immediately try to edit it under the wrong name.
+For Edit operations, there's a separate **30-minute mtime window**: editing a handoff older than 30 minutes is always allowed (that's legitimate maintenance on historical documents). Only fresh handoffs get the naming enforcement — catching agents that create a file and immediately try to edit it under the wrong name.
 
 ### Handoff File Auto-Allow
 **Event:** `PreToolUse` on `Read|Write|Edit`
@@ -44,6 +44,8 @@ Behavior depends on the operation and whether the file exists:
 - **Read/Edit on an existing file** — allowed, but the agent is told this is a legacy location and asked to suggest moving the files to `record/`. This handles the case where cnc is installed after superpowers has already created files in `docs/`.
 
 Operations on other `docs/` paths (e.g. `docs/api-reference.md`) pass through untouched.
+
+Two userConfig knobs: `for_the_record_mode` (`block` default, or `warn` to allow with a suggestion) and `record_subdirs` (comma-separated — replace the default list with your own set). See [Configuration](#configuration).
 
 ### Session Start Reminders
 **Event:** `SessionStart`
@@ -160,6 +162,24 @@ Quick dashboard for cnc's log files (`$CLAUDE_PLUGIN_DATA/*.jsonl` — typically
 - `/cnc-logs harvest` — clippy lint analysis (runs `clippy-analyze.sh`)
 - `/cnc-logs drift` — schema drift detector: flags hook scripts that read payload fields never observed in wiretap for their matching event
 - `/cnc-logs oops --tail` — last 10 raw entries as JSON
+
+## Configuration
+
+cnc ships two configuration surfaces:
+
+### `userConfig` — install-time preferences
+
+Declared in `plugin.json → userConfig`. Claude Code prompts for these when you enable the plugin; the values are stored under `pluginConfigs.cnc.options` in your `settings.json` and exposed to hooks as `CLAUDE_PLUGIN_OPTION_<KEY>` env vars. To change a value later, edit `settings.json` directly (or reinstall). Defaults match the built-in behavior, so leaving the prompts blank works fine.
+
+| Key | Default | What it does |
+|---|---|---|
+| `for_the_record_mode` | `block` | `block` (redirect `docs/{subdir}/` writes to `record/`) or `warn` (allow but attach a "suggested path" note to the agent). |
+| `record_subdirs` | `adrs,decisions,plans,reviews,specs,diagrams,superpowers` | Comma-separated list of subdirs under `docs/` that for-the-record treats as internal record-keeping. Set to your own vocabulary to replace the default. |
+| `handoff_drift_minutes` | `5` | Tolerance window in minutes for `.handoffs/` filename timestamps. The hook compares the filename's `YYYY-MM-DD-HHMM` prefix against real-now and blocks if `abs(diff) > N`. |
+
+### Runtime toggles — `/cncflip` and config files
+
+Per-hook on/off and per-wiretap-event on/off. See the [Commands](#commands) section. These live in `.claude/settings.local.json` (project) or `~/.config/cnc/defaults.json` (global) — not in `pluginConfigs`, because they're toggled mid-session rather than set at install.
 
 ## Testing
 

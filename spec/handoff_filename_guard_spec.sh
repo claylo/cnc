@@ -1,16 +1,26 @@
 Describe 'handoff-filename-guard.sh'
   GUARD="hooks/handoff-filename-guard.sh"
   FROZEN_TS="2026-03-09-1430"
-  PREV_TS="2026-03-09-1429"
   TEST_HANDOFF_DIR="/tmp/cnc-test-handoffs"
 
   setup() {
-    export FROZEN_TS PREV_TS
+    export FROZEN_TS
+    # Mock date so ALL calls resolve against FROZEN_TS consistently:
+    #   date +%Y-%m-%d-%H%M         → FROZEN_TS literal (what hook uses to build "correct" path)
+    #   date +%s                    → epoch of FROZEN_TS (mocked "now")
+    #   date -j -f ... / date -d ... → pass-through to real command date (parses filenames)
     date() {
       case "${1:-}" in
-        -v-1M) shift; echo "$PREV_TS" ;;
-        +%s)   command date +%s ;;
-        *)     echo "$FROZEN_TS" ;;
+        +%s)
+          command date -j -f "%Y-%m-%d-%H%M" "$FROZEN_TS" +%s 2>/dev/null \
+            || command date -d "${FROZEN_TS:0:10} ${FROZEN_TS:11:2}:${FROZEN_TS:13:2}" +%s 2>/dev/null
+          ;;
+        -j|-d)
+          command date "$@"
+          ;;
+        *)
+          echo "$FROZEN_TS"
+          ;;
       esac
     }
     export -f date
