@@ -10,5 +10,25 @@
   "homepage": "https://github.com/claylo/cnc",
   "repository": "https://github.com/claylo/cnc",
   "license": "MIT",
-  "keywords": ["hooks", "guardrails", "workflow", "rust", "formatting", "handoffs"]
+  "keywords": ["hooks", "guardrails", "workflow", "rust", "formatting", "handoffs"],
+  "userConfig": {
+    "for_the_record_mode": {
+      "title": "For-the-record mode",
+      "description": "How to handle docs/{subdir}/ writes. 'block' redirects to record/. 'warn' allows the write but adds a suggestion. Default: block.",
+      "type": "string",
+      "sensitive": false
+    },
+    "record_subdirs": {
+      "title": "Record subdirectories",
+      "description": "Comma-separated subdirs under record/ that for-the-record treats as record-keeping. Default: adrs,decisions,plans,reviews,specs,diagrams,superpowers",
+      "type": "string",
+      "sensitive": false
+    },
+    "handoff_drift_minutes": {
+      "title": "Handoff timestamp drift tolerance (minutes)",
+      "description": "Maximum absolute difference between a new .handoffs/ filename's YYYY-MM-DD-HHMM timestamp and the real current time. Catches agents that hallucinate timestamps off by hours. Default: 5.",
+      "type": "string",
+      "sensitive": false
+    }
+  }
 }
