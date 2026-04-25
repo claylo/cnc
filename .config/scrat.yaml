@@ -3,3 +3,13 @@ project:
 
 commands:
   test: shellspec
+
+version_files:
+  - path: ".claude-plugin/plugin.json"
+    format: json
+    field: version
+  - path: ".claude-plugin/marketplace.json"
+    format: json
+    fields:
+      - "metadata.version"
+      - "plugins.*.version"

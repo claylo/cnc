@@ -93,7 +93,7 @@ The companion script `hooks/clippy-analyze.sh` reads the harvest data and identi
 Logs the full payload of every tool failure to `$CLAUDE_PLUGIN_DATA/oops.jsonl`. Useful for spotting patterns in what goes wrong across sessions — recurring permission denials, flaky commands, etc.
 
 ### Wiretap
-**Event:** all 27 Claude Code hook events
+**Event:** all 29 Claude Code hook events
 
 Captures each event's full payload to `$CLAUDE_PLUGIN_DATA/wiretap.jsonl`, stamped with `ts` and `cc_version`. This is the observability surface for what Claude Code actually sends hooks — payload shapes, which fields are populated, undocumented events, schema changes across Claude Code versions.
 
