@@ -1,55 +1,117 @@
 {
   "description": "Context-aware workflow hooks for redirection & precision",
   "hooks": {
-    "SessionStart": [
+    "ConfigChange": [
       {
         "matcher": "",
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/session-start.sh"
-          },
-          {
-            "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/wiretap.sh"
-          },
-          {
-            "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/mcp-probe.sh",
-            "async": true,
-            "timeout": 60
           }
         ]
       }
     ],
-    "PreToolUse": [
+    "CwdChanged": [
       {
-        "matcher": "Read|Write|Edit",
+        "matcher": "",
         "hooks": [
           {
             "type": "command",
-            "command": "jq 'if (.tool_input.file_path | test(\"/\\\\.handoffs/\")) then {hookSpecificOutput: {hookEventName: \"PreToolUse\", permissionDecision: \"allow\", permissionDecisionReason: \"handoff file access\"}} else empty end'"
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/wiretap.sh"
           }
         ]
-      },
+      }
+    ],
+    "Elicitation": [
       {
-        "matcher": "Write|Edit",
+        "matcher": "",
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/handoff-filename-guard.sh"
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/wiretap.sh"
           }
         ]
-      },
+      }
+    ],
+    "ElicitationResult": [
       {
-        "matcher": "Read|Write|Edit",
+        "matcher": "",
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/for-the-record.sh"
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/wiretap.sh"
           }
         ]
-      },
+      }
+    ],
+    "FileChanged": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/wiretap.sh"
+          }
+        ]
+      }
+    ],
+    "InstructionsLoaded": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/wiretap.sh"
+          }
+        ]
+      }
+    ],
+    "Notification": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/wiretap.sh"
+          }
+        ]
+      }
+    ],
+    "PermissionDenied": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/wiretap.sh"
+          }
+        ]
+      }
+    ],
+    "PermissionRequest": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/wiretap.sh"
+          }
+        ]
+      }
+    ],
+    "PostCompact": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/wiretap.sh"
+          }
+        ]
+      }
+    ],
+    "PostToolBatch": [
       {
         "matcher": "",
         "hooks": [
@@ -104,7 +166,7 @@
         ]
       }
     ],
-    "ConfigChange": [
+    "PreCompact": [
       {
         "matcher": "",
         "hooks": [
@@ -115,134 +177,34 @@
         ]
       }
     ],
-    "CwdChanged": [
+    "PreToolUse": [
       {
-        "matcher": "",
+        "matcher": "Read|Write|Edit",
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/wiretap.sh"
+            "command": "jq 'if (.tool_input.file_path | test(\"/\\\\.handoffs/\")) then {hookSpecificOutput: {hookEventName: \"PreToolUse\", permissionDecision: \"allow\", permissionDecisionReason: \"handoff file access\"}} else empty end'"
           }
         ]
-      }
-    ],
-
-    "Setup": [
+      },
       {
-        "matcher": "",
+        "matcher": "Write|Edit",
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/wiretap.sh"
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/handoff-filename-guard.sh"
           }
         ]
-      }
-    ],
-    "Elicitation": [
+      },
       {
-        "matcher": "",
+        "matcher": "Read|Write|Edit",
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/wiretap.sh"
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/for-the-record.sh"
           }
         ]
-      }
-    ],
-    "ElicitationResult": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/wiretap.sh"
-          }
-        ]
-      }
-    ],
-    "InstructionsLoaded": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/wiretap.sh"
-          }
-        ]
-      }
-    ],
-    "Notification": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/wiretap.sh"
-          }
-        ]
-      }
-    ],
-    "FileChanged": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/wiretap.sh"
-          }
-        ]
-      }
-    ],
-
-    "SubagentStart": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/wiretap.sh"
-          }
-        ]
-      }
-    ],
-
-    "SubagentStop": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/wiretap.sh"
-          }
-        ]
-      }
-    ],
-
-    "TaskCreated": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/wiretap.sh"
-          }
-        ]
-      }
-    ],
-
-    "TaskCompleted": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/wiretap.sh"
-          }
-        ]
-      }
-    ],
-
-    "TeammateIdle": [
+      },
       {
         "matcher": "",
         "hooks": [
@@ -268,19 +230,28 @@
         ]
       }
     ],
-
-    "PermissionDenied": [
+    "SessionStart": [
       {
         "matcher": "",
         "hooks": [
           {
             "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/session-start.sh"
+          },
+          {
+            "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/wiretap.sh"
+          },
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/mcp-probe.sh",
+            "async": true,
+            "timeout": 60
           }
         ]
       }
     ],
-    "StopFailure": [
+    "Setup": [
       {
         "matcher": "",
         "hooks": [
@@ -302,7 +273,7 @@
         ]
       }
     ],
-    "PermissionRequest": [
+    "StopFailure": [
       {
         "matcher": "",
         "hooks": [
@@ -313,7 +284,7 @@
         ]
       }
     ],
-    "PreCompact": [
+    "SubagentStart": [
       {
         "matcher": "",
         "hooks": [
@@ -324,7 +295,7 @@
         ]
       }
     ],
-    "PostCompact": [
+    "SubagentStop": [
       {
         "matcher": "",
         "hooks": [
@@ -335,7 +306,7 @@
         ]
       }
     ],
-    "WorktreeCreate": [
+    "TaskCompleted": [
       {
         "matcher": "",
         "hooks": [
@@ -346,7 +317,29 @@
         ]
       }
     ],
-    "WorktreeRemove": [
+    "TaskCreated": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/wiretap.sh"
+          }
+        ]
+      }
+    ],
+    "TeammateIdle": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/wiretap.sh"
+          }
+        ]
+      }
+    ],
+    "UserPromptExpansion": [
       {
         "matcher": "",
         "hooks": [
@@ -369,6 +362,28 @@
             "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/context-warn.sh"
           },
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/wiretap.sh"
+          }
+        ]
+      }
+    ],
+    "WorktreeCreate": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/wiretap.sh"
+          }
+        ]
+      }
+    ],
+    "WorktreeRemove": [
+      {
+        "matcher": "",
+        "hooks": [
           {
             "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/wiretap.sh"
