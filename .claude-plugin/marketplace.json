@@ -1,25 +1,32 @@
 {
-  "name": "cnc-dev-marketplace",
-  "owner": {
-    "name": "Clay Loveless",
-    "email": "clay@loveless.net"
-  },
   "metadata": {
     "description": "Clay's opinionated Claude Code workflow guardrails",
-    "version": "1.3.0"
+    "version": "1.4.0"
+  },
+  "name": "cnc-dev-marketplace",
+  "owner": {
+    "email": "clay@loveless.net",
+    "name": "Clay Loveless"
   },
   "plugins": [
     {
-      "name": "cnc",
-      "source": "./",
-      "description": "Clay & Claude guardrails — hooks for precision, redirection, and workflow discipline",
-      "version": "1.3.0",
       "author": {
         "name": "Clay Loveless"
       },
+      "category": "workflow",
+      "description": "Clay & Claude guardrails — hooks for precision, redirection, and workflow discipline",
+      "keywords": [
+        "hooks",
+        "guardrails",
+        "workflow",
+        "rust",
+        "formatting",
+        "handoffs"
+      ],
       "license": "MIT",
-      "keywords": ["hooks", "guardrails", "workflow", "rust", "formatting", "handoffs"],
-      "category": "workflow"
+      "name": "cnc",
+      "source": "./",
+      "version": "1.4.0"
     }
   ]
 }

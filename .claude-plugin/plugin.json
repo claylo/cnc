@@ -1,34 +1,41 @@
 {
-  "name": "cnc",
-  "version": "1.3.0",
-  "description": "Clay & Claude guardrails — hooks for precision, redirection, and workflow discipline",
   "author": {
-    "name": "Clay Loveless",
     "email": "clay@loveless.net",
+    "name": "Clay Loveless",
     "url": "https://github.com/claylo"
   },
+  "description": "Clay & Claude guardrails — hooks for precision, redirection, and workflow discipline",
   "homepage": "https://github.com/claylo/cnc",
-  "repository": "https://github.com/claylo/cnc",
+  "keywords": [
+    "hooks",
+    "guardrails",
+    "workflow",
+    "rust",
+    "formatting",
+    "handoffs"
+  ],
   "license": "MIT",
-  "keywords": ["hooks", "guardrails", "workflow", "rust", "formatting", "handoffs"],
+  "name": "cnc",
+  "repository": "https://github.com/claylo/cnc",
   "userConfig": {
     "for_the_record_mode": {
-      "title": "For-the-record mode",
       "description": "How to handle docs/{subdir}/ writes. 'block' redirects to record/. 'warn' allows the write but adds a suggestion. Default: block.",
-      "type": "string",
-      "sensitive": false
-    },
-    "record_subdirs": {
-      "title": "Record subdirectories",
-      "description": "Comma-separated subdirs under record/ that for-the-record treats as record-keeping. Default: adrs,decisions,plans,reviews,specs,diagrams,superpowers",
-      "type": "string",
-      "sensitive": false
+      "sensitive": false,
+      "title": "For-the-record mode",
+      "type": "string"
     },
     "handoff_drift_minutes": {
-      "title": "Handoff timestamp drift tolerance (minutes)",
       "description": "Maximum absolute difference between a new .handoffs/ filename's YYYY-MM-DD-HHMM timestamp and the real current time. Catches agents that hallucinate timestamps off by hours. Default: 5.",
-      "type": "string",
-      "sensitive": false
+      "sensitive": false,
+      "title": "Handoff timestamp drift tolerance (minutes)",
+      "type": "string"
+    },
+    "record_subdirs": {
+      "description": "Comma-separated subdirs under record/ that for-the-record treats as record-keeping. Default: adrs,decisions,plans,reviews,specs,diagrams,superpowers",
+      "sensitive": false,
+      "title": "Record subdirectories",
+      "type": "string"
     }
-  }
+  },
+  "version": "1.4.0"
 }
